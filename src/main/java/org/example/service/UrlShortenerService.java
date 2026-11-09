@@ -1,3 +1,4 @@
+
 package org.example.service;
 
 import org.example.models.Url;
@@ -9,16 +10,26 @@ import java.util.UUID;
 import java.awt.Desktop;
 import java.net.URI;
 
-
 public class UrlShortenerService {
 
     private final UrlRepository urlRepository;
+    private final UrlPersistenceService urlPersistenceService;
 
-    public UrlShortenerService(UrlRepository urlRepository) {
+    public UrlShortenerService(
+            UrlRepository urlRepository,
+            UrlPersistenceService urlPersistenceService
+    ) {
         this.urlRepository = urlRepository;
+        this.urlPersistenceService = urlPersistenceService;
     }
 
-    public String shorten(UUID ownerId, String baseUrl, int clickLimit, Instant expiresAt) {
+    // Создание короткой ссылки
+    public String shorten(
+            UUID ownerId,
+            String baseUrl,
+            int clickLimit,
+            Instant expiresAt
+    ) throws IOException {
 
         String shortUrl;
 
@@ -26,14 +37,23 @@ public class UrlShortenerService {
             shortUrl = UrlShortener.generateShortUrl();
         } while (urlRepository.ifExists(shortUrl));
 
-        Url url = new Url(ownerId, shortUrl, baseUrl, clickLimit, expiresAt);
+        Url url = new Url(
+                ownerId,
+                shortUrl,
+                baseUrl,
+                clickLimit,
+                expiresAt
+        );
 
         urlRepository.save(url);
+
+        urlPersistenceService.saveUrls();
 
         return shortUrl;
     }
 
     public String getOriginalUrl(String shortUrl) {
+
         Url url = urlRepository.findByShortUrl(shortUrl);
 
         if (url == null) {
@@ -47,6 +67,7 @@ public class UrlShortenerService {
         return urlRepository.findByShortUrl(shortUrl);
     }
 
+    // Переход по короткой ссылке
     public void redirectUrl(Url url) throws IOException {
 
         if (url == null) {
@@ -77,13 +98,17 @@ public class UrlShortenerService {
 
         url.incrementClickCount();
         url.decrementClickLimit();
+
+        urlPersistenceService.saveUrls();
     }
 
     public Url findUrl(String shortUrl) {
         return urlRepository.findByShortUrl(shortUrl);
     }
 
-    public boolean deleteUrl(String shortUrl, UUID ownerId) {
+    // Удаление ссылки
+    public boolean deleteUrl(String shortUrl, UUID ownerId)
+            throws IOException {
 
         Url url = urlRepository.findByShortUrl(shortUrl);
 
@@ -97,15 +122,19 @@ public class UrlShortenerService {
 
         urlRepository.delete(shortUrl);
 
+        urlPersistenceService.saveUrls();
+
         return true;
     }
 
+    // Изменение параметров
     public boolean updateParameters(
             String shortUrl,
             UUID ownerId,
             int newClickLimit,
             Instant newExpiresAt
-    ) {
+    ) throws IOException {
+
         Url url = urlRepository.findByShortUrl(shortUrl);
 
         if (url == null) {
@@ -120,12 +149,15 @@ public class UrlShortenerService {
             return false;
         }
 
-        if (newExpiresAt == null || !newExpiresAt.isAfter(Instant.now())) {
+        if (newExpiresAt == null ||
+                !newExpiresAt.isAfter(Instant.now())) {
             return false;
         }
 
         url.setClickLimit(newClickLimit);
         url.setExpiresAt(newExpiresAt);
+
+        urlPersistenceService.saveUrls();
 
         return true;
     }

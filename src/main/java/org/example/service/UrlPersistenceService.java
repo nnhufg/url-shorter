@@ -1,3 +1,4 @@
+
 package org.example.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -19,6 +20,7 @@ public class UrlPersistenceService {
     private final File file;
 
     public UrlPersistenceService(UrlRepository urlRepository) {
+
         this.urlRepository = urlRepository;
 
         this.mapper = new ObjectMapper();
@@ -35,13 +37,16 @@ public class UrlPersistenceService {
 
         List<Url> allUrls = urlRepository.findAll();
 
-        mapper.writeValue(file, allUrls);
+        mapper.writerWithDefaultPrettyPrinter()
+                .writeValue(file, allUrls);
     }
 
     // Загрузка ссылок
     public void loadUrls() throws IOException {
 
+        // Если файл отсутствует, создаём его
         if (!file.exists()) {
+            saveUrls();
             return;
         }
 

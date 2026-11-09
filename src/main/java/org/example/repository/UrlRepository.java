@@ -1,3 +1,4 @@
+
 package org.example.repository;
 
 import org.example.models.Url;
@@ -9,53 +10,63 @@ public class UrlRepository {
 
     private final Map<String, Url> urls = new HashMap<>();
 
-    public void save(Url url) {
+    public synchronized void save(Url url) {
         urls.put(url.getShortUrl(), url);
     }
 
-    public Url findByShortUrl(String shortUrl) {
+    public synchronized Url findByShortUrl(String shortUrl) {
         return urls.get(shortUrl);
     }
 
-    public boolean ifExists(String shortUrl) {
+    public synchronized boolean ifExists(String shortUrl) {
         return urls.containsKey(shortUrl);
     }
 
-    public void delete(String shortUrl) {
+    public synchronized void delete(String shortUrl) {
         urls.remove(shortUrl);
     }
 
-    public void showMap() {
+    public synchronized void showMap() {
+
         for (Map.Entry<String, Url> entry : urls.entrySet()) {
+
             System.out.println(
                     entry.getKey() + " : " + entry.getValue().getBaseUrl()
             );
         }
     }
 
-    public void deleteExpiredUrls() {
-        Instant now = Instant.now();
+    public synchronized boolean deleteExpiredUrls() {
 
-        Iterator<Map.Entry<String, Url>> iterator = urls.entrySet().iterator();
+        Instant now = Instant.now();
+        boolean deleted = false;
+
+        Iterator<Map.Entry<String, Url>> iterator =
+                urls.entrySet().iterator();
 
         while (iterator.hasNext()) {
+
             Map.Entry<String, Url> entry = iterator.next();
 
             if (entry.getValue().getExpiresAt() != null &&
-                    entry.getValue().getExpiresAt().isBefore(now)) {
+                    !entry.getValue().getExpiresAt().isAfter(now)) {
 
                 iterator.remove();
+                deleted = true;
             }
         }
+
+        return deleted;
     }
 
-    public List<Url> findAll() {
+    public synchronized List<Url> findAll() {
         return new ArrayList<>(urls.values());
     }
 
-    public List<Url> findAllByOwnerId(UUID ownerId) {
+    public synchronized List<Url> findAllByOwnerId(UUID ownerId) {
+
         return urls.values().stream()
-                .filter(url -> url.getOwnerId().equals(ownerId))
+                .filter(url -> Objects.equals(url.getOwnerId(), ownerId))
                 .toList();
     }
 }
