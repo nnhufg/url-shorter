@@ -49,6 +49,11 @@ public class UrlShortenerService {
 
     public void redirectUrl(Url url) throws IOException {
 
+        if (url == null) {
+            System.out.println("Ссылка не найдена.");
+            return;
+        }
+
         if (url.getExpiresAt() != null &&
                 !url.getExpiresAt().isAfter(Instant.now())) {
 
@@ -71,6 +76,7 @@ public class UrlShortenerService {
         );
 
         url.incrementClickCount();
+        url.decrementClickLimit();
     }
 
     public Url findUrl(String shortUrl) {

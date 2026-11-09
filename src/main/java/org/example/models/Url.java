@@ -1,5 +1,8 @@
 package org.example.models;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.UUID;
 import java.time.Instant;
 
@@ -29,6 +32,25 @@ public class Url {
         this.baseUrl = baseUrl;
         this.clickLimit = clickLimit;
         this.clickCount = 0;
+        this.expiresAt = expiresAt;
+    }
+
+    @JsonCreator
+    public Url(
+            @JsonProperty("id") UUID id,
+            @JsonProperty("ownerId") UUID ownerId,
+            @JsonProperty("shortUrl") String shortUrl,
+            @JsonProperty("baseUrl") String baseUrl,
+            @JsonProperty("clickLimit") int clickLimit,
+            @JsonProperty("clickCount") int clickCount,
+            @JsonProperty("expiresAt") Instant expiresAt
+    ) {
+        this.id = id;
+        this.ownerId = ownerId;
+        this.shortUrl = shortUrl;
+        this.baseUrl = baseUrl;
+        this.clickLimit = clickLimit;
+        this.clickCount = clickCount;
         this.expiresAt = expiresAt;
     }
 
@@ -78,5 +100,9 @@ public class Url {
 
     public void incrementClickCount() {
         this.clickCount++;
+    }
+
+    public void decrementClickLimit() {
+        this.clickLimit--;
     }
 }

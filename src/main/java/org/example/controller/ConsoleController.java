@@ -3,8 +3,13 @@ package org.example.controller;
 import org.example.models.Url;
 import org.example.models.User;
 import org.example.repository.UrlRepository;
+import org.example.repository.UserRepository;
 import org.example.service.UrlExpirationService;
+import org.example.service.UrlPersistenceService;
 import org.example.service.UrlShortenerService;
+import org.example.service.UserPersistenceService;
+import org.example.config.AppConfig;
+import java.time.temporal.ChronoUnit;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -19,18 +24,55 @@ public class ConsoleController {
     private final UrlRepository urlRepository;
     private final UrlShortenerService urlShortenerService;
     private final UrlExpirationService urlExpirationService;
+    private final UserPersistenceService userPersistenceService;
+    private final UserRepository userRepository;
+    private final UrlPersistenceService urlPersistenceService;
+    private final AppConfig appConfig;
 
-    public ConsoleController() {
+    public ConsoleController() throws IOException {
+
         this.scanner = new Scanner(System.in);
 
-        this.user = new User();
+        // Загружаем конфигурацию
+        this.appConfig = new AppConfig();
 
+        // Репозиторий пользователей
+        this.userRepository = new UserRepository();
+
+        // Сервис сохранения и загрузки пользователей
+        this.userPersistenceService =
+                new UserPersistenceService(userRepository);
+
+        // Восстанавливаем пользователей из JSON
+        userPersistenceService.loadUsers();
+
+        // Выбираем пользователя
+        if (userRepository.findAll().isEmpty()) {
+            this.user = new User();
+            userRepository.saveUser(user);
+        } else {
+            this.user = userRepository.findAll().get(0);
+        }
+
+        // Создаём репозиторий ссылок
         this.urlRepository = new UrlRepository();
 
+        // Сервис сохранения и загрузки ссылок
+        this.urlPersistenceService =
+                new UrlPersistenceService(this.urlRepository);
+
+        this.urlPersistenceService.loadUrls();
+
+        // Сервис сокращения ссылок
         this.urlShortenerService =
                 new UrlShortenerService(urlRepository);
 
-        this.urlExpirationService = new UrlExpirationService(urlRepository);
+        // Сервис удаления просроченных ссылок
+        this.urlExpirationService = new UrlExpirationService(
+                urlRepository,
+                appConfig.getCleanupIntervalMinutes()
+        );
+
         this.urlExpirationService.start();
     }
 
@@ -73,13 +115,17 @@ public class ConsoleController {
 
                 case "0" -> {
                     running = false;
+
                     urlExpirationService.stop();
+
+                    userPersistenceService.saveUsers();
+
+                    urlPersistenceService.saveUrls();
+
+                    System.out.println("Пользователи сохранены!");
+                    System.out.println("Ссылки сохранены!");
                     System.out.println("Завершение работы...");
                 }
-
-                default -> System.out.println(
-                        "Неверный выбор. Выберите пункт из меню!"
-                );
             }
         }
     }
@@ -93,10 +139,12 @@ public class ConsoleController {
 
         String baseUrl = scanner.nextLine();
 
-        Instant expiresAt =
-                Instant.now().plus(Duration.ofDays(7));
+        int clickLimit = appConfig.getDefaultClickLimit();
 
-        int clickLimit = 5;
+        Instant expiresAt = Instant.now().plus(
+                appConfig.getDefaultTtlDays(),
+                ChronoUnit.DAYS
+        );
 
         String shortUrl = urlShortenerService.shorten(
                 user.getId(),
@@ -128,9 +176,9 @@ public class ConsoleController {
 
         urlShortenerService.redirectUrl(url);
 
-        System.out.println(
-                "Количество переходов: " + url.getClickCount()
-        );
+        System.out.println("Количество переходов: " + url.getClickCount());
+        System.out.println("Оставшийся лимит: " + url.getClickLimit());
+        System.out.println("Срок действия ссылки истекает: " + url.getExpiresAt());
     }
 
     // 3. Просмотр ссылок

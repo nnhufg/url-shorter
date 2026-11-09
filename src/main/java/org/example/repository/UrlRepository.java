@@ -2,9 +2,7 @@ package org.example.repository;
 
 import org.example.models.Url;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.time.Instant;
 
 public class UrlRepository {
@@ -49,5 +47,15 @@ public class UrlRepository {
                 iterator.remove();
             }
         }
+    }
+
+    public List<Url> findAll() {
+        return new ArrayList<>(urls.values());
+    }
+
+    public List<Url> findAllByOwnerId(UUID ownerId) {
+        return urls.values().stream()
+                .filter(url -> url.getOwnerId().equals(ownerId))
+                .toList();
     }
 }
