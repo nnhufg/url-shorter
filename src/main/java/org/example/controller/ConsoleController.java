@@ -41,41 +41,13 @@ public class ConsoleController {
 
     public ConsoleController() throws IOException {
 
-        this.scanner = new Scanner(System.in);
-
-        // Отдельный поток чтения консольного ввода
-        Thread inputThread = new Thread(() -> {
-
-            while (!Thread.currentThread().isInterrupted()) {
-
-                try {
-
-                    String input = scanner.nextLine();
-                    inputQueue.put(input);
-
-                } catch (InterruptedException e) {
-
-                    Thread.currentThread().interrupt();
-                    break;
-
-                } catch (NoSuchElementException e) {
-
-                    break;
-                }
-            }
-
-        });
-
-        inputThread.setDaemon(true);
-        inputThread.start();
-
         // Конфигурация
         this.appConfig = new AppConfig();
 
         // Репозиторий пользователей
         this.userRepository = new UserRepository();
 
-        // Сервис пользователей
+        // Сервис сохранения пользователей
         this.userPersistenceService =
                 new UserPersistenceService(userRepository);
 
@@ -106,6 +78,36 @@ public class ConsoleController {
                 appConfig.getCleanupIntervalMinutes()
         );
 
+        // Инициализация консольного ввода
+        this.scanner = new Scanner(System.in);
+
+        // Отдельный поток чтения консольного ввода
+        Thread inputThread = new Thread(() -> {
+
+            while (!Thread.currentThread().isInterrupted()) {
+
+                try {
+
+                    String input = scanner.nextLine();
+                    inputQueue.put(input);
+
+                } catch (InterruptedException e) {
+
+                    Thread.currentThread().interrupt();
+                    break;
+
+                } catch (NoSuchElementException e) {
+
+                    break;
+                }
+            }
+
+        });
+
+        inputThread.setDaemon(true);
+        inputThread.start();
+
+        // Запуск автоматической очистки просроченных ссылок
         this.urlExpirationService.start();
     }
 
@@ -293,50 +295,44 @@ public class ConsoleController {
         System.out.print("\nВаш выбор: ");
     }
 
-    /**
-     * Создание короткой ссылки.
-     */
+
+
     public void createShortUrl() throws IOException {
 
-        System.out.print(
-                "\nВведите ссылку для сокращения: "
-        );
+        System.out.print("\nВведите ссылку для сокращения: ");
 
         String baseUrl = readInput();
 
-        int clickLimit =
-                appConfig.getDefaultClickLimit();
+        int clickLimit = appConfig.getDefaultClickLimit();
 
-        Instant expiresAt =
-                Instant.now().plus(
-                        appConfig.getDefaultTtlDays(),
-                        ChronoUnit.DAYS
-                );
-
-        String shortUrl =
-                urlShortenerService.shorten(
-                        user.getId(),
-                        baseUrl,
-                        clickLimit,
-                        expiresAt
-                );
-
-        System.out.println(
-                "\nКороткая ссылка успешно создана!"
+        Instant expiresAt = Instant.now().plus(
+                appConfig.getDefaultTtlDays(),
+                ChronoUnit.DAYS
         );
 
-        System.out.println(
-                "Ваша ссылка: " + shortUrl
-        );
+        try {
+            String shortUrl = urlShortenerService.shorten(
+                    user.getId(),
+                    baseUrl,
+                    clickLimit,
+                    expiresAt
+            );
 
-        System.out.println(
-                "Лимит переходов: " + clickLimit
-        );
+            System.out.println("\nКороткая ссылка успешно создана!");
+            System.out.println("Ваша ссылка: " + shortUrl);
+            System.out.println("Лимит переходов: " + clickLimit);
+            System.out.println("Срок действия до: " + expiresAt);
 
-        System.out.println(
-                "Срок действия до: " + expiresAt
-        );
+        } catch (IllegalArgumentException e) {
+            System.out.println("\nОшибка: " + e.getMessage());
+
+        } catch (IOException e) {
+            System.out.println(
+                    "\nОшибка сохранения ссылки: " + e.getMessage()
+            );
+        }
     }
+
 
     /**
      * Открытие короткой ссылки.

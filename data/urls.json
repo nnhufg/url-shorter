@@ -1,1 +1,9 @@
-[ ]
+[ {
+  "id" : "4c418a62-0ae8-4744-8818-7a29a70245bc",
+  "ownerId" : "1b01ee22-6b65-4dfc-b4af-dbbaea2c1aad",
+  "shortUrl" : "https://shrt.ru/4fQJIl",
+  "baseUrl" : "https://yandex.ru/search/?text=как+в+List+java+вернуть+все%3F&lr=213&clid=11528080",
+  "clickLimit" : 5,
+  "clickCount" : 0,
+  "expiresAt" : "2026-11-16T19:55:48.917536Z"
+} ]

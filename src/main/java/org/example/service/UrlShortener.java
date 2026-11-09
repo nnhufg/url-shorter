@@ -19,4 +19,3 @@ public class UrlShortener {
         return "https://shrt.ru/" + generatedID;
     }
 }
-

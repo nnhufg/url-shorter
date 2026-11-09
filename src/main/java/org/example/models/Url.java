@@ -1,3 +1,4 @@
+
 package org.example.models;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -26,13 +27,15 @@ public class Url {
             int clickLimit,
             Instant expiresAt
     ) {
-        this.id = UUID.randomUUID();
-        this.ownerId = ownerId;
-        this.shortUrl = shortUrl;
-        this.baseUrl = baseUrl;
-        this.clickLimit = clickLimit;
-        this.clickCount = 0;
-        this.expiresAt = expiresAt;
+        this(
+                UUID.randomUUID(),
+                ownerId,
+                shortUrl,
+                baseUrl,
+                clickLimit,
+                0,
+                expiresAt
+        );
     }
 
     @JsonCreator
@@ -45,6 +48,42 @@ public class Url {
             @JsonProperty("clickCount") int clickCount,
             @JsonProperty("expiresAt") Instant expiresAt
     ) {
+        if (id == null) {
+            throw new IllegalArgumentException(
+                    "ID ссылки не может быть null."
+            );
+        }
+
+        if (ownerId == null) {
+            throw new IllegalArgumentException(
+                    "ID владельца не может быть null."
+            );
+        }
+
+        if (shortUrl == null || shortUrl.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Короткая ссылка не может быть пустой."
+            );
+        }
+
+        if (baseUrl == null || baseUrl.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Исходный URL не может быть пустым."
+            );
+        }
+
+        if (clickLimit <= 0) {
+            throw new IllegalArgumentException(
+                    "Лимит переходов должен быть больше нуля."
+            );
+        }
+
+        if (clickCount < 0) {
+            throw new IllegalArgumentException(
+                    "Количество переходов не может быть отрицательным."
+            );
+        }
+
         this.id = id;
         this.ownerId = ownerId;
         this.shortUrl = shortUrl;
@@ -83,14 +122,32 @@ public class Url {
     }
 
     public void setShortUrl(String shortUrl) {
+        if (shortUrl == null || shortUrl.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Короткая ссылка не может быть пустой."
+            );
+        }
+
         this.shortUrl = shortUrl;
     }
 
     public void setBaseUrl(String baseUrl) {
+        if (baseUrl == null || baseUrl.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Исходный URL не может быть пустым."
+            );
+        }
+
         this.baseUrl = baseUrl;
     }
 
     public void setClickLimit(int clickLimit) {
+        if (clickLimit <= 0) {
+            throw new IllegalArgumentException(
+                    "Лимит переходов должен быть больше нуля."
+            );
+        }
+
         this.clickLimit = clickLimit;
     }
 
@@ -99,10 +156,12 @@ public class Url {
     }
 
     public void incrementClickCount() {
-        this.clickCount++;
-    }
+        if (clickCount >= clickLimit) {
+            throw new IllegalStateException(
+                    "Лимит переходов исчерпан."
+            );
+        }
 
-    public void decrementClickLimit() {
-        this.clickLimit--;
+        clickCount++;
     }
 }

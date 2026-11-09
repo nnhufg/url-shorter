@@ -6,11 +6,22 @@ import java.io.IOException;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
 
-        ConsoleController controller =
-                new ConsoleController();
+        try {
 
-        controller.mainMenu();
+            ConsoleController controller = new ConsoleController();
+            controller.mainMenu();
+
+        } catch (IOException e) {
+
+            System.out.println(
+                    "\nНе удалось запустить приложение."
+            );
+
+            System.out.println(
+                    "Причина: " + e.getMessage()
+            );
+        }
     }
 }
